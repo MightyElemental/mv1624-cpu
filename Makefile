@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -O3
+CXXFLAGS = -std=c++14 -O3
 
 SRC_DIR = src
 BUILD_DIR = build
