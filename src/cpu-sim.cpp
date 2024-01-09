@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "cpu.h"
 
-const int memory_size = 1024*32;
+static const int memory_size = 1024*64;
 uint8_t memory[memory_size] = {
     0b1111'0000, 0b1111'1111,
     0b1100'0000, 0b0000'0000,
@@ -11,6 +11,8 @@ uint8_t memory[memory_size] = {
 
 int main() {
     std::cout << "hello world\n";
+
+    init_cpu(memory_size);
 
     bool halted = false;
 

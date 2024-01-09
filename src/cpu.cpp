@@ -1,23 +1,32 @@
 #include <cstdint>
 #include <iostream>
 #include "decoder.h"
+#include "alu.h"
 
-uint16_t program_counter = 0;
+#define u8 uint8_t
+#define u16 uint16_t
 
-extern uint8_t memory[];
+u16 program_counter = 0;
+
+u16 addr_select;
+
+extern u8 memory[];
 extern bool halt;
 
+// Stack pointer
+u16 spointer; // stored at the top of memory and moves down
+
 // Registers
-uint16_t reg_a;
-uint16_t reg_b;
-uint16_t reg_c;
-uint16_t reg_d;
+u16 reg_a;
+u16 reg_b;
+u16 reg_c;
+u16 reg_d;
 
 // Vector Registers
-uint16_t avx_reg_a[4];
-uint16_t avx_reg_b[4];
-uint16_t avx_reg_c[4];
-uint16_t avx_reg_d[4];
+u16 avx_reg_a[4];
+u16 avx_reg_b[4];
+u16 avx_reg_c[4];
+u16 avx_reg_d[4];
 
 // Flags
 bool zero;
@@ -26,9 +35,15 @@ bool overflow;
 bool pos;
 bool neg;
 
-bool reg_en;
-bool avx_reg_en;
+bool ir_en;      // instruction register write enable
+bool pc_en;      // program counter write enable
+bool reg_en;     // register write enable
+bool avx_reg_en; // vector register write enable
+bool ram_en;     // memory write enable
 
+void init_cpu(u16 memsize) {
+    spointer = memsize-1;
+}
 
 /**
  * @brief Actions to take when the system clock ticks
@@ -38,11 +53,13 @@ bool avx_reg_en;
  */
 bool cycle() {
     std::cout << "\npc: " << (program_counter) << std::endl;
-    uint8_t upper = memory[program_counter++];
-    uint8_t lower = memory[program_counter++];
-    uint16_t inst = (upper << 8) | lower;
+    u8 upper = memory[program_counter++];
+    u8 lower = memory[program_counter++];
+    u16 inst = (upper << 8) | lower;
 
     set_microcode_flags(inst);
+
+    //execute_alu();
 
     return halt;
 }
