@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdint>
 #include "cpu.h"
+#include "registers.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -14,28 +15,32 @@ extern bool overflow;
 extern bool pos;
 extern bool neg;
 
-extern bool reg_en; // enable register write
+extern bool reg_en;     // enable register write
 extern bool avx_reg_en; // enable avx register write
+extern bool ir_en;      // instruction register write enable
+extern bool pc_en;      // program counter write enable
+extern bool ram_en;     // memory write enable
 
 extern bool alu_ctl3;
 extern bool alu_ctl2;
 extern bool alu_ctl1;
 extern bool alu_ctl0;
 
+extern bool reg_en;     // register write enable
+extern bool reg_selx0;  // register select1
+extern bool reg_selx1;  // register select2
+extern bool reg_sely0;  // register select y1
+extern bool reg_sely1;  // register select y2
 
 // Basic Instructions (uses operand)
 bool halt; // 0
-bool move; // 1
-bool add; // 2
-bool sub; // 3
-bool bitwiseAnd; // 4
-bool load; // 5
-bool store; // 6
-bool addm; // 7
-bool subm; // 8
-bool compare; // 9
-bool bitwiseOr; // 10
-bool bitwiseXor; // 11
+// bool move; // 1
+// bool bitwiseAnd; // 4
+// bool addm; // 7
+// bool subm; // 8
+// bool compare; // 9
+// bool bitwiseOr; // 10
+// bool bitwiseXor; // 11
 
 bool reg_instructions; // 14
 bool vtx_instructions; // 15
@@ -43,22 +48,30 @@ bool vtx_instructions; // 15
 // Register Instructions
 // 1110iiii
 // rr--rr--
-bool reg_load;    //  load value into register
+bool reg_load_opr;      // load value from operand into register
+bool reg_load_mem_dir;  // load value from mem addr in operand
 
-bool reg_add_opr; //  Add value from operand
-bool reg_add_mem; //  Add value from mem with address stored in D
-bool reg_add_reg; //  Add value from reg
+bool reg_add_opr;       // Add value from operand
+bool reg_add_mem_ind;   // Add value from mem with address stored in reg
+bool reg_add_mem_dir;   // Add value from mem addr in operand
+bool reg_add_reg;       // Add value from reg
 
-bool reg_sub_opr; //  Sub value from operand
-bool reg_sub_mem; //  Sub value from mem with address stored in D
-bool reg_sub_reg; //  Sub value from reg
+bool reg_sub_opr;       // Sub value from operand
+bool reg_sub_mem_ind;   // Sub value from mem with address stored in reg
+bool reg_sub_mem_dir;   // Sub value from mem addr in operand
+bool reg_sub_reg;       // Sub value from reg
 
-bool reg_and_reg; //  Bitwise AND two registers
-bool reg_or_reg;  //  Bitwise OR two registers
-bool reg_xor_reg; //  Bitwise XOR two reigsters
+bool reg_mul_opr;       // Multiply value from operand
+bool reg_mul_mem_ind;   // Multiply value from mem with address stored in reg
+bool reg_mul_mem_dir;   // Multiply value from mem addr in operand
+bool reg_mul_reg;       // Multiply value from reg
 
-bool reg_lshift;  //  Left shift register
-bool reg_rshift;  //  Right shift register
+bool reg_and_reg;       // Bitwise AND two registers
+bool reg_or_reg;        // Bitwise OR two registers
+bool reg_xor_reg;       // Bitwise XOR two reigsters
+
+bool reg_lshift;        // Left shift register
+bool reg_rshift;        // Right shift register
 
 // Vector Instructions
 bool vec_load;   // 1. load values into vector register
@@ -98,10 +111,12 @@ void decode_1h_instruction(u16 instruction) {
     //bool y06 = (instruction & (1 <<  9)) != 0;
     //bool y07 = (instruction & (1 <<  8)) != 0;
 
-    reg_add_mem = reg_instructions && (nib2 == 0);
-    reg_add_reg = reg_instructions && (nib2 == 1);
-    reg_sub_mem = reg_instructions && (nib2 == 2);
-    reg_sub_reg = reg_instructions && (nib2 == 3);
+    reg_add_opr = reg_instructions && (nib2 == 2);
+    //reg_add_mem = reg_instructions && (nib2 == 0);
+    //reg_add_reg = reg_instructions && (nib2 == 1);
+
+    //reg_sub_mem = reg_instructions && (nib2 == 2);
+    //reg_sub_reg = reg_instructions && (nib2 == 3);
 
     // bool y08 = (instruction & (1 << 7)) != 0;
     // bool y09 = (instruction & (1 << 6)) != 0;
@@ -117,6 +132,12 @@ void decode_1h_instruction(u16 instruction) {
 void set_microcode_flags(u16 instruction) {
     decode_1h_instruction(instruction);
 
+    reg_en = reg_load_mem_dir | reg_load_opr;
+
+    alu_ctl3 = false;
+    alu_ctl2 = false;
+    alu_ctl1 = false;
+    alu_ctl0 = false;
 
 
     std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;

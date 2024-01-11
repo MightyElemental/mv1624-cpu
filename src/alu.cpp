@@ -4,6 +4,7 @@
 
 #define u8 uint8_t
 #define u16 uint16_t
+#define u32 uint32_t
 
 /*
     For simplicity sake, calculations will use standard C operations
@@ -30,7 +31,10 @@ u16 alu_in_b;
  * @return u16
  */
 u16 alu_adder() {
-    return alu_ctl0 ? (alu_in_a - alu_in_b) : (alu_in_a + alu_in_b);
+    u16 res = alu_ctl0 ? (alu_in_a - alu_in_b) : (alu_in_a + alu_in_b);
+    zero = res == 0;
+
+    return static_cast<u16>(res);
 }
 
 /**
@@ -69,10 +73,19 @@ u16 alu_shift() {
     return alu_ctl0 ? alu_in_a << 1 : alu_in_a >> 1;
 }
 
+/**
+ * @brief Performs an integer multiply on a and b
+ * 
+ * @return u16 
+ */
+u16 alu_mult() {
+    return alu_in_a * alu_in_b;
+}
+
 u16 execute_alu() {
     u8 mutex = (alu_ctl3&1) << 2;
-    mutex |= (alu_ctl2&1) << 1;
-    mutex |= (alu_ctl1&1);
+    mutex   |= (alu_ctl2&1) << 1;
+    mutex   |= (alu_ctl1&1);
 
     switch(mutex) {
         case 1:
@@ -86,7 +99,7 @@ u16 execute_alu() {
         case 5:
             return alu_xor();
         case 6:
-
+            return alu_mult();
         case 7:
 
         case 0:

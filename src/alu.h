@@ -13,3 +13,4 @@ u16 alu_and();
 u16 alu_or();
 u16 alu_xor();
 u16 alu_shift();
+u16 alu_mult();
