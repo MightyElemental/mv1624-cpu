@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdint>
+#include "utils.h"
 #include "cpu.h"
 #include "registers.h"
 
@@ -31,6 +32,10 @@ extern bool reg_selx0;  // register select1
 extern bool reg_selx1;  // register select2
 extern bool reg_sely0;  // register select y1
 extern bool reg_sely1;  // register select y2
+
+extern bool addr_sel0;  // memory address source select 0
+extern bool addr_sel1;  // memory address source select 1
+extern u16  op_mem_addr;// memory address from operand
 
 // Basic Instructions (uses operand)
 bool halt; // 0
@@ -78,14 +83,7 @@ bool vec_load;   // 1. load values into vector register
 
 
 
-void printBinary(u16 value) {
-    for (int i = 15; i >= 0; --i) {
-        // Use bitwise AND to check the value of each bit
-        std::cout << ((value >> i) & 1);
-        if (i%4==0) std::cout << "_";
-    }
-    std::cout << std::endl;
-}
+
 
 void decode_1h_instruction(u16 instruction) {
     // bool y00 = (instruction & (1 << 15)) != 0;
@@ -110,6 +108,8 @@ void decode_1h_instruction(u16 instruction) {
     //bool y05 = (instruction & (1 << 10)) != 0;
     //bool y06 = (instruction & (1 <<  9)) != 0;
     //bool y07 = (instruction & (1 <<  8)) != 0;
+
+    reg_load_mem_dir = nib1 == 5; // TESTING - DELETE
 
     reg_add_opr = reg_instructions && (nib2 == 2);
     //reg_add_mem = reg_instructions && (nib2 == 0);
@@ -139,6 +139,26 @@ void set_microcode_flags(u16 instruction) {
     alu_ctl1 = false;
     alu_ctl0 = false;
 
+    /*
+    +-----------+-----------+-----------------+
+    | addr_sel1 | addr_sel0 | Addr Source     |
+    +-----------+-----------+-----------------+
+    |     0     |     0     | program counter |
+    +-----------+-----------+-----------------+
+    |     0     |     1     | register y      |
+    +-----------+-----------+-----------------+
+    |     1     |     0     | operand         |
+    +-----------+-----------+-----------------+
+    |     1     |     1     |        X        |
+    +-----------+-----------+-----------------+
+    */
+
+    //addr_sel0 = 
+    addr_sel1 = reg_load_mem_dir;
+
+    op_mem_addr = static_cast<u16>(instruction); // TODO: Make IR 32bit and dynamically load bytes
+
+    std::cout << op_mem_addr;
 
     std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;
     std::cout << "VTX? " << (vtx_instructions?"Yes":"No") << std::endl;

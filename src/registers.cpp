@@ -1,6 +1,8 @@
+#include <iostream>
 #include <cstdint>
 
 #include "cpu.h"
+#include "utils.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -19,6 +21,14 @@ extern u16 reg_x_dat;   // register data x line
 extern u16 reg_y_dat;   // register data y line
 
 u16 registers[4];
+
+void print_registers() {
+    std::cout << "===Registers===" << std::endl;
+    for (u8 i = 0; i < 4; i++) {
+        printBinary(registers[i]);
+    }
+    std::cout << "===============" << std::endl;
+}
 
 void write_regx() {
     if (clear) return;   // if clear is high, ignore write
