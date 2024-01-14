@@ -3,16 +3,22 @@
 #include "decoder.h"
 #include "alu.h"
 #include "registers.h"
+#include "inst_register.h"
+#include "prog_counter.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
+#define u32 uint32_t
 
 u16 program_counter = 0;
+u32 inst_register = 0;
+u8  mem_bus;
 
 u16 addr_select;
 
 extern u8 memory[];
-extern bool halt;
+extern bool halt;     // whether the CPU is halted
+extern bool execute;
 
 // Stack pointer
 u16 spointer; // stored at the top of memory and moves down
@@ -33,7 +39,7 @@ bool neg;
 bool clear;      // clear any stored memory
 bool ir_en;      // instruction register write enable
 bool pc_en;      // program counter write enable
-bool avx_reg_en; // vector register write enable
+bool vec_reg_en; // vector register write enable
 bool ram_en;     // memory write enable
 
 bool addr_sel0;  // memory address source select 0
@@ -55,6 +61,7 @@ bool dat_sel1;
 
 void init_cpu(int memsize) {
     spointer = memsize-1;
+    ir_en  = true;
 }
 
 void write_mem() {
@@ -65,6 +72,12 @@ void write_mem() {
 
 void set_mem_source() {
     u8 mem_src = ((addr_sel0&1)) | ((addr_sel1&1) << 1);
+
+    /*
+    0 - program counter
+    1 - from a register
+    2 - from an operand
+    */
 
     switch (mem_src) {
         case 0:
@@ -78,6 +91,12 @@ void set_mem_source() {
     }
 }
 
+void clk_mem() {
+    mem_bus = memory[mem_addr];
+}
+
+u8 times = 255;
+
 /**
  * @brief Actions to take when the system clock ticks
  * 
@@ -86,9 +105,6 @@ void set_mem_source() {
  */
 bool cycle() {
     std::cout << "\npc: " << (program_counter) << std::endl;
-    u8 upper = memory[program_counter++];
-    u8 lower = memory[program_counter++];
-    u16 inst = (upper << 8) | lower;
 
     /*
         Basic steps
@@ -103,17 +119,23 @@ bool cycle() {
     */
 
     set_mem_source();
+    clk_mem();
 
-    set_microcode_flags(inst);
+    std::cout << "mem " << +mem_bus << std::endl;
+
+    clk_ir_reg();
+
+    set_microcode_flags();
+
+    clk_pc();
 
     set_regx_bus();
     set_regy_bus();
 
     execute_alu();
 
-    write_regx();
-    clear_registers();
+    clk_registers();
     write_mem();
 
-    return halt;
+    return halt && execute;
 }

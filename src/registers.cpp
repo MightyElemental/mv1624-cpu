@@ -25,25 +25,20 @@ u16 registers[4];
 void print_registers() {
     std::cout << "===Registers===" << std::endl;
     for (u8 i = 0; i < 4; i++) {
-        printBinary(registers[i]);
+        printBinary16(registers[i]);
     }
     std::cout << "===============" << std::endl;
 }
 
-void write_regx() {
-    if (clear) return;   // if clear is high, ignore write
+void clk_registers() {
+    if (clear) {
+        for (u8 i = 0; i < 4; i++) registers[i] = 0;
+        return; // if clear is high, ignore write
+    }
     if (!reg_en) return; // if the write enable line is not high, don't write
 
     u8 val = (reg_selx0) | (reg_selx1 << 1);
     registers[val] = reg_dat_in;
-}
-
-void clear_registers() {
-    if (!clear) return; // if clear not high, don't clear
-    
-    for (u8 i = 0; i < 4; i++) {
-        registers[i] = 0;
-    }
 }
 
 void set_regx_bus() {
