@@ -1,5 +1,5 @@
 #include <cstdint>
-#include <iostream>
+// #include <iostream>
 #include "cpu.h"
 
 #define u8 uint8_t
@@ -33,7 +33,7 @@ void clk_ir_reg() {
         return;
     }
     u8 byte_count = ((stage1 << 1) | stage0);
-    std::cout << "     \033" << (ir_en ? "[30;42m" : "[37;41m") << +byte_count << ", clear: " << (clear?"YES":"NO") << ", ir_en: " << (ir_en?"YES":"NO") << "\033[0m" << std::endl;
+    // std::cout << "     \033" << (ir_en ? "[30;42m" : "[37;41m") << +byte_count << ", clear: " << (clear?"YES":"NO") << ", ir_en: " << (ir_en?"YES":"NO") << "\033[0m" << std::endl;
     if (!ir_en) return; // If IR write is not enabled, do nothing
 
     inst_register &= masks[byte_count];

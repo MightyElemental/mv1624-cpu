@@ -5,6 +5,7 @@
 #include "registers.h"
 #include "inst_register.h"
 #include "prog_counter.h"
+#include "utils.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -59,8 +60,16 @@ u16  reg_dat_in; // the databus into the register block
 u16  reg_x_dat;  // register data x line
 u16  reg_y_dat;  // register data y line
 
+bool alu_ctl3;   // mutex3
+bool alu_ctl2;   // mutex2
+bool alu_ctl1;   // mutex1
+bool alu_ctl0;   // modifier
+
 bool dat_sel0;
 bool dat_sel1;
+
+u16 alu_in_a;
+u16 alu_in_b;
 
 void init_cpu(int memsize) {
     spointer = memsize-1;
@@ -71,6 +80,35 @@ void write_mem() {
     if (!ram_en) return; // if ram enable is not high, don't write memory
 
     memory[mem_addr] = reg_x_dat;
+}
+
+void set_alu_b() {
+    u8 dat_src = ((dat_sel0&1)) | ((dat_sel1&1) << 1);
+
+    /*
+    0 - 2nd and 3rd bytes of the instruction register
+    1 - memory
+    2 - register y
+    3 - 
+    */
+
+    switch(dat_src) {
+        case 0:
+            alu_in_b = inst_register >> 8;
+            break;
+        case 1:
+            // memory
+            alu_in_b = 0; // TEMP
+            break;
+        case 2:
+            // register y
+            alu_in_b = 0; // TEMP
+            break;
+        case 3:
+            // ?
+            alu_in_b = 0; // TEMP
+            break;
+    }
 }
 
 void set_mem_source() {
@@ -101,7 +139,7 @@ void clk_mem() {
 /**
  * @brief Actions to take when the system clock ticks
  * 
- * @return true when the program has halted
+ * @return true when the program has halted,
  * @return false otherwise
  */
 bool cycle() {
@@ -124,18 +162,26 @@ bool cycle() {
 
     std::cout << "addr: " << mem_addr << ", mem: " << +mem_bus << std::endl;
 
-    // TODO: Fix issue where instruction register is not updating on the same cycle
-
     clk_ir_reg();
 
     set_microcode_flags();
+
+    set_alu_b();
+
+        // printBinary16(alu_in_b);
 
     clk_pc();
 
     set_regx_bus();
     set_regy_bus();
 
-    execute_alu();
+    set_alu_b(); // sets alu_in_b
+
+        // printBinary16(alu_in_b);
+
+    execute_alu(); // sets reg_dat_in
+
+        // printBinary16(reg_dat_in);
 
     clk_registers();
     write_mem();

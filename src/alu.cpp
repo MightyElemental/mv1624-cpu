@@ -1,6 +1,6 @@
-#include <iostream>
 #include <cstdint>
 #include "cpu.h"
+// #include "utils.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -17,13 +17,14 @@ extern bool overflow;
 extern bool pos;
 extern bool neg;
 
-bool alu_ctl3; // mutex3
-bool alu_ctl2; // mutex2
-bool alu_ctl1; // mutex1
-bool alu_ctl0; // modifier
+extern bool alu_ctl3; // mutex3
+extern bool alu_ctl2; // mutex2
+extern bool alu_ctl1; // mutex1
+extern bool alu_ctl0; // modifier
 
-u16 alu_in_a;
-u16 alu_in_b;
+extern u16 alu_in_a; // reg_y_dat
+extern u16 alu_in_b;
+extern u16 reg_dat_in;
 
 /**
  * @brief Adds or subs a to/from b depending on the modifier value.
@@ -82,32 +83,31 @@ u16 alu_mult() {
     return alu_in_a * alu_in_b;
 }
 
-u16 execute_alu() {
+void execute_alu() {
     u8 mutex = (alu_ctl3&1) << 2;
     mutex   |= (alu_ctl2&1) << 1;
     mutex   |= (alu_ctl1&1);
 
+    // printBinary16(alu_in_a);
+    // printBinary16(alu_in_b);
+
     switch(mutex) {
-        case 1:
-            return alu_in_b; // passthrough
+        case 0:
+            reg_dat_in = alu_in_b; // passthrough
         case 2:
-            return alu_or();
+            reg_dat_in = alu_or();
         case 3:
-            return alu_shift();
+            reg_dat_in = alu_shift();
         case 4:
-            return alu_and();
+            reg_dat_in = alu_and();
         case 5:
-            return alu_xor();
+            reg_dat_in = alu_xor();
         case 6:
-            return alu_mult();
+            reg_dat_in = alu_mult();
         case 7:
 
-        case 0:
+        case 1:
         default:
-            return alu_adder();
+            reg_dat_in = alu_adder();
     }
-
-    //std::cout << "mutex: " << +mutex << std::endl;
-
-    return alu_in_b;
 }

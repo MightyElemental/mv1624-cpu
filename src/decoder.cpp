@@ -38,6 +38,9 @@ extern bool alu_ctl2;
 extern bool alu_ctl1;
 extern bool alu_ctl0;
 
+extern bool dat_sel0;
+extern bool dat_sel1;
+
 extern bool reg_en;     // register write enable
 extern bool reg_selx0;  // register select x1
 extern bool reg_selx1;  // register select x2
@@ -106,35 +109,16 @@ void decode_1h_instruction() {
     u8 nib1 = inst_register >> 28;
     u8 nib2 = (inst_register >> 24) & 0x0F;
 
+    u8 byte1 = (inst_register >> 24);
+
     // std::cout << "y0-3? " << y00 << y01 << y02 << y03 << std::endl;
 
-    halt             =  nib1 == 0;
+    halt                = (byte1) == 0;
+    reg_load_opr        = (byte1&0b1111'1100) == 0b1000'0000; // 1000_00rr
+    reg_add_opr         = (byte1&0b1111'1100) == 0b1000'0100; // 1000_01rr
 
-    vtx_instructions =  nib1 == 15;
+    vtx_instructions    = nib1 == 15;
 
-    //bool y04 = (instruction & (1 << 11)) != 0;
-    //bool y05 = (instruction & (1 << 10)) != 0;
-    //bool y06 = (instruction & (1 <<  9)) != 0;
-    //bool y07 = (instruction & (1 <<  8)) != 0;
-
-    reg_load_mem_dir = nib1 == 5; // TESTING - DELETE
-
-    reg_add_opr = (nib2 == 2);
-    //reg_add_mem = reg_instructions && (nib2 == 0);
-    //reg_add_reg = reg_instructions && (nib2 == 1);
-
-    //reg_sub_mem = reg_instructions && (nib2 == 2);
-    //reg_sub_reg = reg_instructions && (nib2 == 3);
-
-    // bool y08 = (instruction & (1 << 7)) != 0;
-    // bool y09 = (instruction & (1 << 6)) != 0;
-    // bool y10 = (instruction & (1 << 5)) != 0;
-    // bool y11 = (instruction & (1 << 4)) != 0;
-
-    // bool y12 = (instruction & (1 << 3)) != 0;
-    // bool y13 = (instruction & (1 << 2)) != 0;
-    // bool y14 = (instruction & (1 << 1)) != 0;
-    // bool y15 = (instruction & (1 << 0)) != 0;
 }
 
 void set_microcode_flags() {
@@ -150,14 +134,26 @@ void set_microcode_flags() {
     // bitwise comparison = not (a xor b)
     stage_done = (fetch && substage >= bytes_to_load) || decode || execute;
 
+    ir_en = (fetch && !stage_done) || (execute && stage_done);
     pc_en = decode || (fetch && !stage_done);
+    reg_en = execute && (reg_load_mem_dir || reg_load_opr || reg_add_opr);
 
-    reg_en = reg_load_mem_dir || reg_load_opr;
+    u8 byte1 = (inst_register >> 24);
 
     alu_ctl3 = false;
     alu_ctl2 = false;
-    alu_ctl1 = false;
+    alu_ctl1 = reg_add_opr;
     alu_ctl0 = false;
+
+    // write+read register select
+    reg_selx0 = byte1&1;
+    reg_selx1 = (byte1>>1)&1;
+    // read register select
+    reg_sely0 = (reg_load_opr && byte1&1);
+    reg_sely1 = (reg_load_opr && (byte1>>1)&1);
+
+    dat_sel0 = false;
+    dat_sel1 = false;
 
     /*
     +-----------+-----------+-----------------+
@@ -193,11 +189,20 @@ void set_microcode_flags() {
         << ", substage: " << +substage
         << std::endl;
 
+        print_color_string(ir_en, "ir_en", " ");
+        print_color_string(pc_en, "pc_en", " ");
+        print_color_string(reg_en, "reg_en", " ");
+        std::cout << std::endl;
+
+        print_color_string(reg_load_opr, "reg_load_opr", " ");
+        print_color_string(reg_add_opr, "reg_add_opr", " ");
+        std::cout << std::endl;
+
         // std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;
     //}
     //std::cout << "VTX? " << (vtx_instructions?"Yes":"No") << std::endl;
 
-    ir_en = (fetch && !stage_done) || (execute && stage_done);
+    
 
     substage = stage_done ? 0 : substage+1; // do not increment substage if done
     substage = decode ? 0 : substage;       // no substages in decode

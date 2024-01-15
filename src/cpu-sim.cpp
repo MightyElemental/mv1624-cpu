@@ -9,10 +9,10 @@
 
 const int memory_size = 1024*64;
 uint8_t memory[memory_size] = {
-    //0b0000'0000, // halt
-    0b1001'0010, 0b1111'1111, 0b1100'0101,
-    0b0100'0000, 0b0001'0001,
-    0b0011'0101,
+    0b1000'0001, 0b1111'1111, 0b1100'0101, // load - data0 - data1
+    0b1000'0101, 0b0000'0000, 0b0001'1010, // add  - data0 - data1
+    0, // halt
+    0b1010'1010, 0b1010'1010 // data
     //0b1110'0000, 0b0000'0000,
 };
 
@@ -22,7 +22,7 @@ int main() {
     u16 b = 15;
     u16 res = (a-b);
 
-    std::cout << "test " << (a-b) << " " << res << std::endl;
+    //std::cout << "test " << res << " " << res << std::endl;
 
     init_cpu(memory_size);
 

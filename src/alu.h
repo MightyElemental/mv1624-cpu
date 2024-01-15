@@ -3,10 +3,7 @@
 #define u8 uint8_t
 #define u16 uint16_t
 
-extern u16 alu_in_a;
-extern u16 alu_in_b;
-
-u16 execute_alu();
+void execute_alu();
 
 u16 alu_adder();
 u16 alu_and();
