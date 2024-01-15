@@ -36,6 +36,9 @@ bool overflow;
 bool pos;
 bool neg;
 
+bool stage0;     // current stage of the decoder 0
+bool stage1;     // current stage of the decoder 1
+
 bool clear;      // clear any stored memory
 bool ir_en;      // instruction register write enable
 bool pc_en;      // program counter write enable
@@ -95,8 +98,6 @@ void clk_mem() {
     mem_bus = memory[mem_addr];
 }
 
-u8 times = 255;
-
 /**
  * @brief Actions to take when the system clock ticks
  * 
@@ -104,7 +105,7 @@ u8 times = 255;
  * @return false otherwise
  */
 bool cycle() {
-    std::cout << "\npc: " << (program_counter) << std::endl;
+    std::cout << "pc: " << (program_counter) << std::endl;
 
     /*
         Basic steps
@@ -121,7 +122,9 @@ bool cycle() {
     set_mem_source();
     clk_mem();
 
-    std::cout << "mem " << +mem_bus << std::endl;
+    std::cout << "addr: " << mem_addr << ", mem: " << +mem_bus << std::endl;
+
+    // TODO: Fix issue where instruction register is not updating on the same cycle
 
     clk_ir_reg();
 

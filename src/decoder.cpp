@@ -25,6 +25,9 @@ extern bool overflow;
 extern bool pos;
 extern bool neg;
 
+extern bool stage0;     // current stage of the decoder 0
+extern bool stage1;     // current stage of the decoder 1
+
 extern bool vec_reg_en; // enable vector register write
 extern bool ir_en;      // instruction register write enable
 extern bool pc_en;      // program counter write enable
@@ -103,9 +106,6 @@ void decode_1h_instruction() {
     u8 nib1 = inst_register >> 28;
     u8 nib2 = (inst_register >> 24) & 0x0F;
 
-    std::cout << "inst: ";
-    printBinary32(inst_register);
-
     // std::cout << "y0-3? " << y00 << y01 << y02 << y03 << std::endl;
 
     halt             =  nib1 == 0;
@@ -147,12 +147,12 @@ void set_microcode_flags() {
     decode_1h_instruction();
 
     bytes_to_load = inst_register >> 30;
-    stage_done = (fetch && substage >= bytes_to_load) || decode;
+    // bitwise comparison = not (a xor b)
+    stage_done = (fetch && substage >= bytes_to_load) || decode || execute;
 
-    ir_en = (fetch && !stage_done);
-    pc_en = decode | (fetch && !stage_done);
+    pc_en = decode || (fetch && !stage_done);
 
-    reg_en = reg_load_mem_dir | reg_load_opr;
+    reg_en = reg_load_mem_dir || reg_load_opr;
 
     alu_ctl3 = false;
     alu_ctl2 = false;
@@ -174,26 +174,38 @@ void set_microcode_flags() {
     */
 
     //addr_sel0 = 
-    addr_sel1 = reg_load_mem_dir;
+    //addr_sel1 = reg_load_mem_dir;
 
-    op_mem_addr = static_cast<u32>(inst_register); // TODO: Make IR 32bit and dynamically load bytes
+    //op_mem_addr = static_cast<u32>(inst_register);
 
-    std::cout 
-    << "bytes2load: " << +bytes_to_load 
-    << ", stage: " << (ring_count == 0 ? "Fetch" : (ring_count == 1 ? "Decode" : "Execute")) 
-    << ", done? " << (stage_done?"Yes":"No")
-    << ", substage: " << +substage
-    << std::endl;
+    //if (execute) {
 
-    std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;
+        std::cout << "inst: ";
+        printBinary32(inst_register);
+
+        std::string step = (ring_count == 0 ? "\033[97;46mFetch\033[0m" : 
+        (ring_count == 1 ? "\033[97;45mDecode\033[0m" : "\033[97;44mExecute\033[0m"));
+
+        std::cout 
+        << "bytes2load: " << +bytes_to_load 
+        << ", stage: " << step 
+        << ", done? " << (stage_done?"Yes":"No")
+        << ", substage: " << +substage
+        << std::endl;
+
+        // std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;
+    //}
     //std::cout << "VTX? " << (vtx_instructions?"Yes":"No") << std::endl;
 
-    if (execute) {
-        exit( 0);
-    }
+    ir_en = (fetch && !stage_done) || (execute && stage_done);
 
     substage = stage_done ? 0 : substage+1; // do not increment substage if done
     substage = decode ? 0 : substage;       // no substages in decode
+
+    // go to next step if stages are complete
     ring_count = stage_done ? (ring_count+1) % 3 : ring_count;
+
+    stage0 = (substage) & 1;
+    stage1 = ((substage)>>1) & 1;
 }
 
