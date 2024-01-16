@@ -69,7 +69,9 @@ bool vtx_instructions; // 15
 // 1110iiii
 // rr--rr--
 bool reg_load_opr;      // load value from operand into register
+bool reg_load_mem_ind;  // load value from mem with address stored in reg
 bool reg_load_mem_dir;  // load value from mem addr in operand
+bool reg_load_reg;      // copy value from one reg to another
 
 bool reg_add_opr;       // Add value from operand
 bool reg_add_mem_ind;   // Add value from mem with address stored in reg
