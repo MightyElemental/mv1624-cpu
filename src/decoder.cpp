@@ -16,7 +16,7 @@ bool fetch;
 bool decode;
 bool execute;
 
-u8 bytes_to_load;      // How many bytes to load into the instruction register
+bool load_full_inst;    // whether the other 16 bytes of the instruction are required
 
 // State of the CPU
 extern bool zero;
@@ -31,6 +31,7 @@ extern bool stage1;     // current stage of the decoder 1
 extern bool vec_reg_en; // enable vector register write
 extern bool ir_en;      // instruction register write enable
 extern bool pc_en;      // program counter write enable
+extern bool pc_byte_adv;// advance the program counter by a single byte instead of two
 extern bool ram_en;     // memory write enable
 
 extern bool alu_ctl3;
@@ -132,10 +133,11 @@ void set_microcode_flags() {
     // Produce one-hot encodings for instructions
     decode_1h_instruction();
 
-    bytes_to_load = inst_register >> 30;
+    load_full_inst = inst_register >> 31;
     // bitwise comparison = not (a xor b)
-    stage_done = (fetch && substage >= bytes_to_load) || decode || execute;
+    stage_done = (fetch && substage >= (load_full_inst&1)) || decode || execute;
 
+    pc_byte_adv = (substage==1 || decode ) && (reg_add_opr || reg_load_opr);
     ir_en = (fetch && !stage_done) || (execute && stage_done);
     pc_en = decode || (fetch && !stage_done);
     reg_en = execute && (reg_load_mem_dir || reg_load_opr || reg_add_opr);
@@ -143,8 +145,8 @@ void set_microcode_flags() {
     u8 byte1 = (inst_register >> 24);
 
     alu_ctl3 = false;
-    alu_ctl2 = false;
-    alu_ctl1 = reg_add_opr;
+    alu_ctl2 = reg_add_opr;
+    alu_ctl1 = false;
     alu_ctl0 = false;
 
     // write+read register select
@@ -185,7 +187,7 @@ void set_microcode_flags() {
         (ring_count == 1 ? "\033[97;45mDecode\033[0m" : "\033[97;44mExecute\033[0m"));
 
         std::cout 
-        << "bytes2load: " << +bytes_to_load 
+        << "loadfull: " << (load_full_inst?"Yes":"No") 
         << ", stage: " << step 
         << ", done? " << (stage_done?"Yes":"No")
         << ", substage: " << +substage
@@ -194,6 +196,7 @@ void set_microcode_flags() {
         print_color_string(ir_en, "ir_en", " ");
         print_color_string(pc_en, "pc_en", " ");
         print_color_string(reg_en, "reg_en", " ");
+        print_color_string(pc_byte_adv, "pc_byte_adv", " ");
         std::cout << std::endl;
 
         print_color_string(reg_load_opr, "reg_load_opr", " ");

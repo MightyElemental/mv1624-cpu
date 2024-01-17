@@ -13,7 +13,7 @@
 
 u16 program_counter = 0;
 u32 inst_register = 0;
-u8  mem_bus;
+u16 mem_bus;
 
 u16 addr_select;
 
@@ -43,6 +43,7 @@ bool stage1;     // current stage of the decoder 1
 bool clear;      // clear any stored memory
 bool ir_en;      // instruction register write enable
 bool pc_en;      // program counter write enable
+bool pc_byte_adv;// advance the program counter by a single byte instead of two
 bool vec_reg_en; // vector register write enable
 bool ram_en;     // memory write enable
 
@@ -79,7 +80,8 @@ void init_cpu(int memsize) {
 void write_mem() {
     if (!ram_en) return; // if ram enable is not high, don't write memory
 
-    memory[mem_addr] = reg_x_dat;
+    memory[mem_addr] = (reg_x_dat);
+    memory[mem_addr+1] = (reg_x_dat >> 8);
 }
 
 void set_alu_b() {
@@ -133,7 +135,7 @@ void set_mem_source() {
 }
 
 void clk_mem() {
-    mem_bus = memory[mem_addr];
+    mem_bus = (memory[mem_addr]<<8) | memory[mem_addr+1];
 }
 
 /**
@@ -168,8 +170,6 @@ bool cycle() {
 
     set_alu_b();
 
-        // printBinary16(alu_in_b);
-
     clk_pc();
 
     set_regx_bus();
@@ -177,11 +177,12 @@ bool cycle() {
 
     set_alu_b(); // sets alu_in_b
 
-        // printBinary16(alu_in_b);
+        printBinary16(alu_in_a);
+        printBinary16(alu_in_b);
 
     execute_alu(); // sets reg_dat_in
 
-        // printBinary16(reg_dat_in);
+        printBinary16(reg_dat_in);
 
     clk_registers();
     write_mem();

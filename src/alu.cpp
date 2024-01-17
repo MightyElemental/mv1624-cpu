@@ -35,7 +35,7 @@ u16 alu_adder() {
     u16 res = alu_ctl0 ? (alu_in_a - alu_in_b) : (alu_in_a + alu_in_b);
     zero = res == 0;
 
-    return static_cast<u16>(res);
+    return res;
 }
 
 /**
@@ -84,30 +84,39 @@ u16 alu_mult() {
 }
 
 void execute_alu() {
-    u8 mutex = (alu_ctl3&1) << 2;
-    mutex   |= (alu_ctl2&1) << 1;
-    mutex   |= (alu_ctl1&1);
+    u8 mutex = (alu_ctl3&1) << 3;
+    mutex   |= (alu_ctl2&1) << 2;
+    mutex   |= (alu_ctl1&1) << 1;
+    mutex   |= (alu_ctl0&1);
 
     // printBinary16(alu_in_a);
     // printBinary16(alu_in_b);
 
     switch(mutex) {
-        case 0:
-            reg_dat_in = alu_in_b; // passthrough
-        case 2:
-            reg_dat_in = alu_or();
-        case 3:
-            reg_dat_in = alu_shift();
-        case 4:
+        case 0: // 0000 passthrough
+            reg_dat_in = alu_in_b;
+            break;
+        case 1: // 0001 bitwise AND
             reg_dat_in = alu_and();
-        case 5:
+            break;
+        case 2: // 0010 bitwise OR
+            reg_dat_in = alu_or();
+            break;
+        case 3: // 0011 bitwise XOR
             reg_dat_in = alu_xor();
-        case 6:
-            reg_dat_in = alu_mult();
-        case 7:
-
-        case 1:
-        default:
+            break;
+        case 4: // 0100 add
+        case 5: // 0101 sub
             reg_dat_in = alu_adder();
+            break;
+        case 6: // 0110 right shift
+        case 7: // 0111 left shift
+            reg_dat_in = alu_shift();
+            break;
+        case 8: // 1000 multiply
+            reg_dat_in = alu_mult();
+            break;
+        default:
+            reg_dat_in = alu_in_b;
     }
 }
