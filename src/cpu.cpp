@@ -18,8 +18,6 @@ u16 mem_bus;
 u16 addr_select;
 
 extern u8 memory[];
-extern bool halt;     // whether the CPU is halted
-extern bool execute;
 
 // Stack pointer
 u16 spointer; // stored at the top of memory and moves down
@@ -36,6 +34,7 @@ bool carry;
 bool overflow;
 bool pos;
 bool neg;
+bool halt_flag;
 
 bool stage0;     // current stage of the decoder 0
 bool stage1;     // current stage of the decoder 1
@@ -177,15 +176,15 @@ bool cycle() {
 
     set_alu_b(); // sets alu_in_b
 
-        printBinary16(alu_in_a);
-        printBinary16(alu_in_b);
+        // printBinary16(alu_in_a);
+        // printBinary16(alu_in_b);
 
     execute_alu(); // sets reg_dat_in
 
-        printBinary16(reg_dat_in);
+        // printBinary16(reg_dat_in);
 
     clk_registers();
     write_mem();
 
-    return halt && execute;
+    return halt_flag;
 }
