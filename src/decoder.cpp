@@ -76,21 +76,6 @@ bool reg_load_mem_ind;  // load value from mem with address stored in reg
 bool reg_load_mem_dir;  // load value from mem addr in operand
 bool reg_load_reg;      // copy value from one reg to another
 
-bool alu_add_opr;       // Add value from operand
-bool alu_add_mem_ind;   // Add value from mem with address stored in reg
-bool alu_add_mem_dir;   // Add value from mem addr in operand
-bool alu_add_reg;       // Add value from reg
-
-bool alu_sub_opr;       // Sub value from operand
-bool alu_sub_mem_ind;   // Sub value from mem with address stored in reg
-bool alu_sub_mem_dir;   // Sub value from mem addr in operand
-bool alu_sub_reg;       // Sub value from reg
-
-bool alu_mul_opr;       // Multiply value from operand
-bool alu_mul_mem_ind;   // Multiply value from mem with address stored in reg
-bool alu_mul_mem_dir;   // Multiply value from mem addr in operand
-bool alu_mul_reg;       // Multiply value from reg
-
 bool alu_and_opr;       // Bitwise AND register with operand
 bool alu_and_mem_ind;   // Bitwise AND register with memory with address stored in reg
 bool alu_and_mem_dir;   // Bitwise AND register with memory with addr in operand
@@ -106,8 +91,23 @@ bool alu_xor_mem_ind;   // Bitwise XOR register with memory with address stored 
 bool alu_xor_mem_dir;   // Bitwise XOR register with memory with addr in operand
 bool alu_xor_reg;       // Bitwise XOR register with register
 
+bool alu_add_opr;       // Add value from operand
+bool alu_add_mem_ind;   // Add value from mem with address stored in reg
+bool alu_add_mem_dir;   // Add value from mem addr in operand
+bool alu_add_reg;       // Add value from reg
+
+bool alu_sub_opr;       // Sub value from operand
+bool alu_sub_mem_ind;   // Sub value from mem with address stored in reg
+bool alu_sub_mem_dir;   // Sub value from mem addr in operand
+bool alu_sub_reg;       // Sub value from reg
+
 bool alu_lshift;        // Left shift register
 bool alu_rshift;        // Right shift register
+
+bool alu_mul_opr;       // Multiply value from operand
+bool alu_mul_mem_ind;   // Multiply value from mem with address stored in reg
+bool alu_mul_mem_dir;   // Multiply value from mem addr in operand
+bool alu_mul_reg;       // Multiply value from reg
 
 // Vector Instructions
 bool vec_load;   // 1. load values into vector register
@@ -131,8 +131,12 @@ void decode_1h_instruction() {
     halt_inst           = (byte1) == 0x3F;
 
     alu_instructions    = (byte1&0b1100'0000) == 0b0100'0000; // 01xx_xxxx
-    reg_load_opr        = (byte1&0b1111'1100) == 0b0100'0000; // 0100_00rr
-    alu_add_opr         = (byte1&0b1111'1100) == 0b0100'0100; // 0100_01rr
+    reg_load_opr        = (byte1)             == 0b0100'0000; // 0100_0000
+
+    alu_add_opr         = (byte1)             == 0b0101'0000; // 0101_0000
+    alu_add_mem_ind     = (byte1)             == 0b0101'0001; // 0101_0001
+    alu_add_mem_dir     = (byte1)             == 0b0101'0010; // 0101_0010
+    alu_add_reg         = (byte1)             == 0b0101'0011; // 0101_0011
 
 }
 
@@ -145,31 +149,32 @@ void set_microcode_flags() {
     // Produce one-hot encodings for instructions
     decode_1h_instruction();
 
-    load_full_inst = !(halt_inst || nop);//inst_register >> 31;
+    load_full_inst = !(halt_inst || nop || alu_add_reg);
     // bitwise comparison = not (a xor b)
     stage_done = (fetch && substage >= (load_full_inst&1)) || decode || execute;
 
-    pc_byte_adv = (substage==1 || decode ) && (alu_add_opr || reg_load_opr || sbinst);
+    pc_byte_adv = (substage==1 || decode ) && (sbinst);
     ir_en = (fetch && !stage_done) || (execute && stage_done);
     pc_en = decode || (fetch && !stage_done);
-    reg_en = execute && (reg_load_mem_dir || reg_load_opr || alu_add_opr);
+    reg_en = execute && (reg_load_mem_dir || reg_load_opr || alu_add_opr || alu_add_reg);
 
     u8 byte1 = (inst_register >> 24);
+    u8 byte2 = (inst_register >> 16);
 
     alu_ctl3 = false;
-    alu_ctl2 = alu_add_opr || alu_sub_opr;
+    alu_ctl2 = alu_add_opr || alu_add_reg || alu_sub_opr;
     alu_ctl1 = false;
     alu_ctl0 = alu_sub_opr;
 
     // write+read register select
-    reg_selx0 = byte1&1;
-    reg_selx1 = (byte1>>1)&1;
+    reg_selx0 = (byte2&1);
+    reg_selx1 = (byte2>>1)&1;
     // read register select
-    reg_sely0 = (reg_load_opr && byte1&1);
-    reg_sely1 = (reg_load_opr && (byte1>>1)&1);
+    reg_sely0 = ((byte2>>2)&1);
+    reg_sely1 = ((byte2>>3)&1);
 
     dat_sel0 = false;
-    dat_sel1 = false;
+    dat_sel1 = alu_add_reg;
 
     halt_flag = halt_inst && execute;
 
@@ -218,6 +223,7 @@ void set_microcode_flags() {
         print_color_string(alu_instructions, "alu_instr", " ");
         print_color_string(reg_load_opr, "reg_load_opr", " ");
         print_color_string(alu_add_opr, "reg_add_opr", " ");
+        print_color_string(alu_add_reg, "alu_add_reg", " ");
         std::cout << std::endl;
 
         // std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;

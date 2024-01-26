@@ -87,7 +87,7 @@ void set_alu_b() {
     u8 dat_src = ((dat_sel0&1)) | ((dat_sel1&1) << 1);
 
     /*
-    0 - 2nd and 3rd bytes of the instruction register
+    0 - 3rd and 4th bytes of the instruction register
     1 - memory
     2 - register y
     3 - 
@@ -95,7 +95,7 @@ void set_alu_b() {
 
     switch(dat_src) {
         case 0:
-            alu_in_b = inst_register >> 8;
+            alu_in_b = inst_register&0x00'00'FF'FF;
             break;
         case 1:
             // memory
@@ -103,7 +103,7 @@ void set_alu_b() {
             break;
         case 2:
             // register y
-            alu_in_b = 0; // TEMP
+            alu_in_b = reg_y_dat;
             break;
         case 3:
             // ?
@@ -176,12 +176,12 @@ bool cycle() {
 
     set_alu_b(); // sets alu_in_b
 
-        // printBinary16(alu_in_a);
-        // printBinary16(alu_in_b);
+        printBinary16(alu_in_a);
+        printBinary16(alu_in_b);
 
     execute_alu(); // sets reg_dat_in
 
-        // printBinary16(reg_dat_in);
+        printBinary16(reg_dat_in);
 
     clk_registers();
     write_mem();
