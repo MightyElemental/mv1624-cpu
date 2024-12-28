@@ -82,15 +82,16 @@ void write_mem() {
     memory[mem_addr+1] = (reg_x_dat >> 8);
 }
 
+/**
+ * The ALU_B_INPUT mutex. The ALU B input line is set according to the dat_selx flags.
+ * 
+ * 0 - 3rd and 4th bytes of the instruction register
+ * 1 - memory read line (used for both direct and indirect)
+ * 2 - register y
+ * 3 -
+ */
 void set_alu_b() {
     u8 dat_src = ((dat_sel0&1)) | ((dat_sel1&1) << 1);
-
-    /*
-    0 - 3rd and 4th bytes of the instruction register
-    1 - memory
-    2 - register y
-    3 - 
-    */
 
     switch(dat_src) {
         case 0:
