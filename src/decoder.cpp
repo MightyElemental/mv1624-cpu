@@ -72,11 +72,6 @@ bool halt_inst;         // 0x3F
 // ALU Instructions
 bool alu_instructions;  // 0b01xx'xxxx
 
-bool alu_add_opr;       // Add value from operand
-bool alu_add_mem_ind;   // Add value from mem with address stored in reg
-bool alu_add_mem_dir;   // Add value from mem addr in operand
-bool alu_add_reg;       // Add value from reg
-
 bool reg_load_opr;      // load value from operand into register
 bool reg_load_mem_ind;  // load value from mem with address stored in reg
 bool reg_load_mem_dir;  // load value from mem addr in operand
@@ -96,6 +91,11 @@ bool alu_xor_opr;       // Bitwise XOR register with operand
 bool alu_xor_mem_ind;   // Bitwise XOR register with memory with address stored in reg
 bool alu_xor_mem_dir;   // Bitwise XOR register with memory with addr in operand
 bool alu_xor_reg;       // Bitwise XOR register with register
+
+bool alu_add_opr;       // Add value from operand
+bool alu_add_mem_ind;   // Add value from mem with address stored in reg
+bool alu_add_mem_dir;   // Add value from mem addr in operand
+bool alu_add_reg;       // Add value from reg
 
 bool alu_sub_opr;       // Sub value from operand
 bool alu_sub_mem_ind;   // Sub value from mem with address stored in reg
