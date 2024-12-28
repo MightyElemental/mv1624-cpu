@@ -9,14 +9,22 @@
 
 const int memory_size = 1024*64;
 uint8_t memory[memory_size] = {
-    0b0100'0000, 0b0000'0001, 0b0000'1000, 0b1100'0101, // load - B - 2245
-    0x00, // nop
-    0b0100'0000, 0b0000'0000, 0b0000'0000, 0b0000'0001, // load - A - 1
-    0b0101'0000, 0b0000'0001, 0b0000'1000, 0b0001'1010, // add  - B - 2074
-    0b0101'0011, 0b0000'0000, // add  - A - A
-    0b0101'0011, 0b0000'0110, // add  - C - B
-    0b0101'0011, 0b0000'1010, // add  - C - C
-    0x3F, // halt
+    // reg_load_opr, register B, value 2245
+    0b0100'0000, 0b0000'0001, 0b0000'1000, 0b1100'0101,
+    // nop
+    0x3F,
+    // reg_load_opr, register A = value 1
+    0b0100'0000, 0b0000'0000, 0b0000'0000, 0b0000'0001,
+    // alu_add_opr, register B += value 2074
+    0b0101'0000, 0b0000'0001, 0b0000'1000, 0b0001'1010,
+    // alu_add_reg, register A += register A
+    0b0101'0011, 0b0000'0000,
+    // alu_add_reg, register C += register B
+    0b0101'0011, 0b0000'0110,
+    // alu_add_reg, register C += register C
+    0b0101'0011, 0b0000'1010,
+    // halt
+    0x00,
     //0b1010'1010, 0b1010'1010 // data
     //0b1110'0000, 0b0000'0000,
 };
