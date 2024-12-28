@@ -51,13 +51,14 @@ extern bool reg_sely1;  // register select y2
 
 extern bool addr_sel0;  // memory address source select 0
 extern bool addr_sel1;  // memory address source select 1
-extern u16  op_mem_addr;// memory address from operand
 
 extern u32 inst_register;
 
 /* Categories
-0b00xx'xxxx - no operand instructions
-0b01xx'xxxx - ALU instructions
+0b00xx'xxxx - No Operand Instructions
+0b01xx'xxxx - ALU Instructions
+0b10xx'xxxx - ?
+0b11xx'xxxx - Vector Instructions
 */
 
 // Basic Instructions
@@ -71,6 +72,11 @@ bool halt_inst;         // 0x3F
 // ALU Instructions
 bool alu_instructions;  // 0b01xx'xxxx
 
+bool alu_add_opr;       // Add value from operand
+bool alu_add_mem_ind;   // Add value from mem with address stored in reg
+bool alu_add_mem_dir;   // Add value from mem addr in operand
+bool alu_add_reg;       // Add value from reg
+
 bool reg_load_opr;      // load value from operand into register
 bool reg_load_mem_ind;  // load value from mem with address stored in reg
 bool reg_load_mem_dir;  // load value from mem addr in operand
@@ -81,20 +87,15 @@ bool alu_and_mem_ind;   // Bitwise AND register with memory with address stored 
 bool alu_and_mem_dir;   // Bitwise AND register with memory with addr in operand
 bool alu_and_reg;       // Bitwise AND register with register
 
-bool alu_or_opr;       // Bitwise OR register with operand
-bool alu_or_mem_ind;   // Bitwise OR register with memory with address stored in reg
-bool alu_or_mem_dir;   // Bitwise OR register with memory with addr in operand
-bool alu_or_reg;       // Bitwise OR register with register
+bool alu_or_opr;        // Bitwise OR register with operand
+bool alu_or_mem_ind;    // Bitwise OR register with memory with address stored in reg
+bool alu_or_mem_dir;    // Bitwise OR register with memory with addr in operand
+bool alu_or_reg;        // Bitwise OR register with register
 
 bool alu_xor_opr;       // Bitwise XOR register with operand
 bool alu_xor_mem_ind;   // Bitwise XOR register with memory with address stored in reg
 bool alu_xor_mem_dir;   // Bitwise XOR register with memory with addr in operand
 bool alu_xor_reg;       // Bitwise XOR register with register
-
-bool alu_add_opr;       // Add value from operand
-bool alu_add_mem_ind;   // Add value from mem with address stored in reg
-bool alu_add_mem_dir;   // Add value from mem addr in operand
-bool alu_add_reg;       // Add value from reg
 
 bool alu_sub_opr;       // Sub value from operand
 bool alu_sub_mem_ind;   // Sub value from mem with address stored in reg
@@ -110,7 +111,9 @@ bool alu_mul_mem_dir;   // Multiply value from mem addr in operand
 bool alu_mul_reg;       // Multiply value from reg
 
 // Vector Instructions
-bool vec_load;   // 1. load values into vector register
+bool vec_instructions;  // 0b11xx'xxxx
+
+bool vec_load;          // load values into vector register
 
 
 
@@ -130,6 +133,8 @@ void decode_1h_instruction() {
     nop                 = (byte1) == 0x00;
     halt_inst           = (byte1) == 0x3F;
 
+    // alu instructions
+
     alu_instructions    = (byte1&0b1100'0000) == 0b0100'0000; // 01xx_xxxx
     reg_load_opr        = (byte1)             == 0b0100'0000; // 0100_0000
 
@@ -138,19 +143,26 @@ void decode_1h_instruction() {
     alu_add_mem_dir     = (byte1)             == 0b0101'0010; // 0101_0010
     alu_add_reg         = (byte1)             == 0b0101'0011; // 0101_0011
 
+    // vector instructions
+    vec_instructions    = (byte1&0b1100'0000) == 0b1100'0000; // 11xx_xxxx
 }
 
+/**
+ * Set the flags for the microcode based on the current stage and instruction
+ */
 void set_microcode_flags() {
     // update ring counter for CPU step
     fetch = ring_count == 0;
     decode = ring_count == 1;
     execute = ring_count == 2;
+
+    // bitwise comparison = not (a xor b)
     
     // Produce one-hot encodings for instructions
     decode_1h_instruction();
 
     load_full_inst = !(halt_inst || nop || alu_add_reg);
-    // bitwise comparison = not (a xor b)
+
     stage_done = (fetch && substage >= (load_full_inst&1)) || decode || execute;
 
     pc_byte_adv = (substage==1 || decode ) && (sbinst);

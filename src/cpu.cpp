@@ -48,7 +48,6 @@ bool ram_en;     // memory write enable
 
 bool addr_sel0;  // memory address source select 0
 bool addr_sel1;  // memory address source select 1
-u16  op_mem_addr;// memory address from operand
 u16  mem_addr;   // selected memory address
 
 bool reg_en;     // register write enable
@@ -129,7 +128,7 @@ void set_mem_source() {
             mem_addr = reg_y_dat;
             break;
         case 2:
-            mem_addr = op_mem_addr;
+            mem_addr = inst_register&0x00'00'FF'FF;
     }
 }
 
@@ -176,11 +175,14 @@ bool cycle() {
 
     set_alu_b(); // sets alu_in_b
 
+        std::cout << "alu_in_a  =";
         printBinary16(alu_in_a);
+        std::cout << "alu_in_b  =";
         printBinary16(alu_in_b);
 
     execute_alu(); // sets reg_dat_in
 
+        std::cout << "reg_dat_in=";
         printBinary16(reg_dat_in);
 
     clk_registers();
