@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cstdint>
 #include "cpu.h"
 #include "registers.h"
@@ -7,8 +6,8 @@
 #define u16 uint16_t
 #define u32 uint32_t
 
-const int memory_size = 1024*64;
-uint8_t memory[memory_size] = {
+const u16 memory_size = 1024*64 - 1;
+u8 memory[memory_size] = {
     // reg_load_opr, register B, value 2245
     0b0100'0000, 0b0000'0001, 0b0000'1000, 0b1100'0101,
     // nop
@@ -23,6 +22,12 @@ uint8_t memory[memory_size] = {
     0b0101'0011, 0b0000'0110,
     // alu_add_reg, register C += register C
     0b0101'0011, 0b0000'1010,
+    // alu_sub_reg, register C -= register A
+    0b0101'0111, 0b0000'0010,
+    // alu_sub_opr, register B -= value 1234
+    0b0101'0100, 0b0000'0001, 0b0000'0100, 0b1101'0010,
+    // alu_lshift, register A <<= 1
+    0b0101'1111, 0b0000'0000,
     // halt
     0x00,
     //0b1010'1010, 0b1010'1010 // data
@@ -30,12 +35,6 @@ uint8_t memory[memory_size] = {
 };
 
 int main() {
-
-    u16 a = 2245;
-    u16 b = 2074;
-    u16 res = (a+b);
-
-    std::cout << "test " << res << " " << res << std::endl;
 
     init_cpu(memory_size);
 

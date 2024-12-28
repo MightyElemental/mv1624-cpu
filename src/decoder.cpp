@@ -217,23 +217,10 @@ void set_microcode_flags() {
     // ALU Control Signals
     // These determine which operation the ALU should perform
     // Mapping ALU operations to control signals
-    alu_ctl3 = (alu_mul_opr || alu_mul_mem_ind || alu_mul_mem_dir || alu_mul_reg) || 
-               (alu_lshift || alu_rshift);
-    
-    alu_ctl2 = alu_add_opr || alu_add_reg || 
-               alu_sub_opr || alu_sub_reg ||
-               alu_and_opr || alu_and_reg ||
-               alu_or_opr || alu_or_reg ||
-               alu_xor_opr || alu_xor_reg ||
-               alu_mul_opr || alu_mul_reg;
-    
-    alu_ctl1 = (alu_and_opr || alu_and_mem_ind || alu_and_mem_dir || alu_and_reg ||
-                alu_or_opr || alu_or_mem_ind || alu_or_mem_dir || alu_or_reg ||
-                alu_xor_opr || alu_xor_mem_ind || alu_xor_mem_dir || alu_xor_reg) ||
-                (alu_lshift || alu_rshift);
-    
-    alu_ctl0 = alu_sub_opr || alu_sub_mem_ind || alu_sub_mem_dir || alu_sub_reg ||
-               alu_rshift;
+    alu_ctl3 = (byte1 & 0b0010'0000) >> 5;
+    alu_ctl2 = (byte1 & 0b0001'0000) >> 4;
+    alu_ctl1 = (byte1 & 0b0000'1000) >> 3;
+    alu_ctl0 = (byte1 & 0b0000'0100) >> 2;
 
     // Write and Read Register Select
     reg_selx0 = (byte2 & 0b0000'0001);
@@ -269,7 +256,7 @@ void set_microcode_flags() {
     |     0     |     0     | program counter |
     |     0     |     1     | register y      |
     |     1     |     0     | operand         |
-    |     1     |     1     |        ?        |
+    |     1     |     1     |     UNUSED      |
     +-----------+-----------+-----------------+
     */
 
@@ -315,6 +302,7 @@ void set_microcode_flags() {
     print_color_string(alu_xor_reg, "alu_xor_reg", " ");
     print_color_string(alu_mul_opr, "alu_mul_opr", " ");
     print_color_string(alu_mul_reg, "alu_mul_reg", " ");
+    print_color_string(alu_lshift, "alu_lshift", " ");
     std::cout << std::endl;
 
     // Update substage: reset if stage is done or if in decode stage

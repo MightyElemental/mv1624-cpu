@@ -144,7 +144,7 @@ void clk_mem() {
  * @return false otherwise
  */
 bool cycle() {
-    std::cout << "pc: " << (program_counter) << std::endl;
+    std::cout << "\npc: " << (program_counter) << std::endl;
 
     /*
         Basic steps
@@ -161,7 +161,7 @@ bool cycle() {
     set_mem_source();
     clk_mem();
 
-    std::cout << "addr: " << mem_addr << ", mem: " << +mem_bus << std::endl;
+    std::cout << "addr: " << mem_addr << ", mem_bus: " << +mem_bus << std::endl;
 
     clk_ir_reg();
 

@@ -84,10 +84,7 @@ u16 alu_mult() {
 }
 
 void execute_alu() {
-    u8 mutex = (alu_ctl3&1) << 3;
-    mutex   |= (alu_ctl2&1) << 2;
-    mutex   |= (alu_ctl1&1) << 1;
-    mutex   |= (alu_ctl0&1);
+    u8 mutex = alu_ctl3 << 3 | alu_ctl2 << 2 | alu_ctl1 << 1 | alu_ctl0;
 
     // printBinary16(alu_in_a);
     // printBinary16(alu_in_b);
