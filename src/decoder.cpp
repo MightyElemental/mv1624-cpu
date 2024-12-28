@@ -63,8 +63,8 @@ extern u32 inst_register;
 
 // Basic Instructions
 bool sbinst;            // Single Byte Instructions
-bool nop;               // 0x00
-bool halt_inst;         // 0x3F
+bool nop;               // 0x3F
+bool halt_inst;         // 0x00
 
 
 
@@ -130,18 +130,50 @@ void decode_1h_instruction() {
     // std::cout << "y0-3? " << y00 << y01 << y02 << y03 << std::endl;
 
     sbinst              = (byte1&0b1100'0000) == 0b0000'0000; // 00xx_xxxx
-    nop                 = (byte1) == 0x00;
-    halt_inst           = (byte1) == 0x3F;
+    nop                 = (byte1) == 0x3F;
+    halt_inst           = (byte1) == 0x00;
 
     // alu instructions
 
     alu_instructions    = (byte1&0b1100'0000) == 0b0100'0000; // 01xx_xxxx
+
     reg_load_opr        = (byte1)             == 0b0100'0000; // 0100_0000
+    reg_load_mem_ind    = (byte1)             == 0b0100'0001; // 0100_0001
+    reg_load_mem_dir    = (byte1)             == 0b0100'0010; // 0100_0010
+    reg_load_reg        = (byte1)             == 0b0100'0011; // 0100_0011
+
+    alu_and_opr         = (byte1)             == 0b0100'0100; 
+    alu_and_mem_ind     = (byte1)             == 0b0100'0101; 
+    alu_and_mem_dir     = (byte1)             == 0b0100'0110; 
+    alu_and_reg         = (byte1)             == 0b0100'0111; 
+
+    alu_or_opr          = (byte1)             == 0b0100'1000; 
+    alu_or_mem_ind      = (byte1)             == 0b0100'1001; 
+    alu_or_mem_dir      = (byte1)             == 0b0100'1010; 
+    alu_or_reg          = (byte1)             == 0b0100'1011; 
+
+    alu_xor_opr         = (byte1)             == 0b0100'1100; 
+    alu_xor_mem_ind     = (byte1)             == 0b0100'1101; 
+    alu_xor_mem_dir     = (byte1)             == 0b0100'1110; 
+    alu_xor_reg         = (byte1)             == 0b0100'1111; 
 
     alu_add_opr         = (byte1)             == 0b0101'0000; // 0101_0000
     alu_add_mem_ind     = (byte1)             == 0b0101'0001; // 0101_0001
     alu_add_mem_dir     = (byte1)             == 0b0101'0010; // 0101_0010
     alu_add_reg         = (byte1)             == 0b0101'0011; // 0101_0011
+
+    alu_sub_opr         = (byte1)             == 0b0101'0100; 
+    alu_sub_mem_ind     = (byte1)             == 0b0101'0101; 
+    alu_sub_mem_dir     = (byte1)             == 0b0101'0110; 
+    alu_sub_reg         = (byte1)             == 0b0101'0111; 
+
+    alu_rshift          = (byte1)             == 0b0101'1011; 
+    alu_lshift          = (byte1)             == 0b0101'1111; 
+
+    alu_mul_opr         = (byte1)             == 0b0110'0000; 
+    alu_mul_mem_ind     = (byte1)             == 0b0110'0001; 
+    alu_mul_mem_dir     = (byte1)             == 0b0110'0010; 
+    alu_mul_reg         = (byte1)             == 0b0110'0011; 
 
     // vector instructions
     vec_instructions    = (byte1&0b1100'0000) == 0b1100'0000; // 11xx_xxxx
@@ -151,106 +183,149 @@ void decode_1h_instruction() {
  * Set the flags for the microcode based on the current stage and instruction
  */
 void set_microcode_flags() {
-    // update ring counter for CPU step
+    // Update ring counter for CPU step
     fetch = ring_count == 0;
     decode = ring_count == 1;
     execute = ring_count == 2;
 
-    // bitwise comparison = not (a xor b)
-    
     // Produce one-hot encodings for instructions
     decode_1h_instruction();
 
-    load_full_inst = !(halt_inst || nop || alu_add_reg);
+    // Determine if the full instruction needs to be loaded
+    // Instructions like NOP, HALT, and certain ALU instructions may not require full loading
+    load_full_inst = !(halt_inst || nop || 
+                       alu_add_reg || alu_sub_reg || 
+                       alu_and_reg || alu_or_reg || 
+                       alu_xor_reg || alu_mul_reg || 
+                       reg_load_reg);
 
-    stage_done = (fetch && substage >= (load_full_inst&1)) || decode || execute;
+    // Determine if the current stage is done
+    stage_done = (fetch && substage >= (load_full_inst ? 1 : 0)) || decode || execute;
 
-    pc_byte_adv = (substage==1 || decode ) && (sbinst);
+    // Advance program counter by a single byte instead of two
+    pc_byte_adv = (substage == 1 || decode) && (sbinst);
+    
+    // Enable signals based on the current stage and instruction
     ir_en = (fetch && !stage_done) || (execute && stage_done);
     pc_en = decode || (fetch && !stage_done);
-    reg_en = execute && (reg_load_mem_dir || reg_load_opr || alu_add_opr || alu_add_reg);
+    reg_en = execute && (alu_instructions);
 
+    // Extract bytes from the instruction register
     u8 byte1 = (inst_register >> 24);
     u8 byte2 = (inst_register >> 16);
 
-    alu_ctl3 = false;
-    alu_ctl2 = alu_add_opr || alu_add_reg || alu_sub_opr;
-    alu_ctl1 = false;
-    alu_ctl0 = alu_sub_opr;
+    // ALU Control Signals
+    // These determine which operation the ALU should perform
+    // Mapping ALU operations to control signals
+    alu_ctl3 = (alu_mul_opr || alu_mul_mem_ind || alu_mul_mem_dir || alu_mul_reg) || 
+               (alu_lshift || alu_rshift);
+    
+    alu_ctl2 = alu_add_opr || alu_add_reg || 
+               alu_sub_opr || alu_sub_reg ||
+               alu_and_opr || alu_and_reg ||
+               alu_or_opr || alu_or_reg ||
+               alu_xor_opr || alu_xor_reg ||
+               alu_mul_opr || alu_mul_reg;
+    
+    alu_ctl1 = (alu_and_opr || alu_and_mem_ind || alu_and_mem_dir || alu_and_reg ||
+                alu_or_opr || alu_or_mem_ind || alu_or_mem_dir || alu_or_reg ||
+                alu_xor_opr || alu_xor_mem_ind || alu_xor_mem_dir || alu_xor_reg) ||
+                (alu_lshift || alu_rshift);
+    
+    alu_ctl0 = alu_sub_opr || alu_sub_mem_ind || alu_sub_mem_dir || alu_sub_reg ||
+               alu_rshift;
 
-    // write+read register select
-    reg_selx0 = (byte2&1);
-    reg_selx1 = (byte2>>1)&1;
-    // read register select
-    reg_sely0 = ((byte2>>2)&1);
-    reg_sely1 = ((byte2>>3)&1);
+    // Write and Read Register Select
+    reg_selx0 = (byte2 & 0b0000'0001);
+    reg_selx1 = (byte2 & 0b0000'0010) >> 1;
+    reg_sely0 = (byte2 & 0b0000'0100) >> 2;
+    reg_sely1 = (byte2 & 0b0000'1000) >> 3;
 
-    dat_sel0 = false;
-    dat_sel1 = alu_add_reg;
+    /*
+    Data Select Signals:
+    +----------+----------+------------+
+    | dat_sel1 | dat_sel0 | source     |
+    +----------+----------+------------+
+    |     0    |     0    | operand    |
+    |     0    |     1    | memory     |
+    |     1    |     0    | register y |
+    |     1    |     1    |      ?     |
+    +----------+----------+------------+
+    */
 
+    // Determines the source of data for operations
+    // The last two bits of byte1 determine the source of data
+    dat_sel0 = (byte1 & 0x03) == 1 || (byte1 & 0x03) == 2;
+    dat_sel1 = (byte1 & 0x03) == 3;
+
+    // Halt flag is set if HALT instruction is being executed
     halt_flag = halt_inst && execute;
 
     /*
+    Address Source Selection:
     +-----------+-----------+-----------------+
     | addr_sel1 | addr_sel0 | Addr Source     |
     +-----------+-----------+-----------------+
     |     0     |     0     | program counter |
-    +-----------+-----------+-----------------+
     |     0     |     1     | register y      |
-    +-----------+-----------+-----------------+
     |     1     |     0     | operand         |
-    +-----------+-----------+-----------------+
-    |     1     |     1     |        X        |
+    |     1     |     1     |        ?        |
     +-----------+-----------+-----------------+
     */
 
-    //addr_sel0 = 
-    //addr_sel1 = reg_load_mem_dir;
+    // Set address select signals based on the instruction
+    addr_sel0 = reg_load_mem_ind;
+    addr_sel1 = reg_load_mem_dir;
 
-    //op_mem_addr = static_cast<u32>(inst_register);
+    // Debugging Information
+    std::cout << "inst: ";
+    printBinary32(inst_register);
 
-    //if (execute) {
+    std::string step = (ring_count == 0 ? "\033[97;46mFetch\033[0m" : 
+                        (ring_count == 1 ? "\033[97;45mDecode\033[0m" : "\033[97;44mExecute\033[0m"));
 
-        std::cout << "inst: ";
-        printBinary32(inst_register);
-
-        std::string step = (ring_count == 0 ? "\033[97;46mFetch\033[0m" : 
-        (ring_count == 1 ? "\033[97;45mDecode\033[0m" : "\033[97;44mExecute\033[0m"));
-
-        std::cout 
-        << "loadfull: " << (load_full_inst?"Yes":"No") 
+    std::cout 
+        << "loadfull: " << (load_full_inst ? "Yes" : "No") 
         << ", stage: " << step 
-        << ", done? " << (stage_done?"Yes":"No")
+        << ", done? " << (stage_done ? "Yes" : "No")
         << ", substage: " << +substage
         << std::endl;
 
-        print_color_string(ir_en, "ir_en", " ");
-        print_color_string(pc_en, "pc_en", " ");
-        print_color_string(reg_en, "reg_en", " ");
-        print_color_string(pc_byte_adv, "pc_byte_adv", " ");
-        std::cout << std::endl;
+    print_color_string(ir_en, "ir_en", " ");
+    print_color_string(pc_en, "pc_en", " ");
+    print_color_string(reg_en, "reg_en", " ");
+    print_color_string(pc_byte_adv, "pc_byte_adv", " ");
+    std::cout << std::endl;
 
-        print_color_string(nop, "nop", " ");
-        print_color_string(halt_inst, "halt", " ");
-        print_color_string(alu_instructions, "alu_instr", " ");
-        print_color_string(reg_load_opr, "reg_load_opr", " ");
-        print_color_string(alu_add_opr, "reg_add_opr", " ");
-        print_color_string(alu_add_reg, "alu_add_reg", " ");
-        std::cout << std::endl;
+    print_color_string(nop, "nop", " ");
+    print_color_string(halt_inst, "halt", " ");
+    print_color_string(alu_instructions, "alu_instr", " ");
+    std::cout << std::endl;
+    print_color_string(reg_load_opr, "reg_load_opr", " ");
+    print_color_string(alu_add_opr, "alu_add_opr", " ");
+    print_color_string(alu_add_reg, "alu_add_reg", " ");
+    print_color_string(alu_sub_opr, "alu_sub_opr", " ");
+    print_color_string(alu_sub_reg, "alu_sub_reg", " ");
+    print_color_string(alu_and_opr, "alu_and_opr", " ");
+    print_color_string(alu_and_reg, "alu_and_reg", " ");
+    print_color_string(alu_or_opr, "alu_or_opr", " ");
+    std::cout << std::endl;
+    print_color_string(alu_or_reg, "alu_or_reg", " ");
+    print_color_string(alu_xor_opr, "alu_xor_opr", " ");
+    print_color_string(alu_xor_reg, "alu_xor_reg", " ");
+    print_color_string(alu_mul_opr, "alu_mul_opr", " ");
+    print_color_string(alu_mul_reg, "alu_mul_reg", " ");
+    std::cout << std::endl;
 
-        // std::cout << "HLT? " << (halt?"Yes":"No") << std::endl;
-    //}
-    //std::cout << "VTX? " << (vtx_instructions?"Yes":"No") << std::endl;
+    // Update substage: reset if stage is done or if in decode stage
+    substage = stage_done ? 0 : substage + 1;
+    substage = decode ? 0 : substage; // No substages in decode
 
-    
+    // Advance to next step if stages are complete
+    ring_count = stage_done ? (ring_count + 1) % 3 : ring_count;
 
-    substage = stage_done ? 0 : substage+1; // do not increment substage if done
-    substage = decode ? 0 : substage;       // no substages in decode
-
-    // go to next step if stages are complete
-    ring_count = stage_done ? (ring_count+1) % 3 : ring_count;
-
+    // Update decoder stages based on the current substage
     stage0 = (substage) & 1;
-    stage1 = ((substage)>>1) & 1;
+    stage1 = ((substage) >> 1) & 1;
 }
 
