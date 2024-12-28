@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdint>
+#include <iomanip>
 
 #include "cpu.h"
 #include "utils.h"
@@ -24,12 +25,13 @@ extern u16 alu_in_a;    // data a line into ALU
 u16 registers[4];
 
 void print_registers() {
-    std::cout << "===Registers===" << std::endl;
+    std::cout << "===========Registers===========" << std::endl;
     for (u8 i = 0; i < 4; i++) {
-        std::cout << +registers[i] << " = ";
+        // print with padding
+        std::cout << std::setw(8) << +registers[i] << " = ";
         printBinary16(registers[i]);
     }
-    std::cout << "===============" << std::endl;
+    std::cout << "===============================" << std::endl;
 }
 
 void clk_registers() {
