@@ -197,7 +197,8 @@ void set_microcode_flags() {
                        alu_add_reg || alu_sub_reg || 
                        alu_and_reg || alu_or_reg || 
                        alu_xor_reg || alu_mul_reg || 
-                       reg_load_reg);
+                       reg_load_reg || alu_rshift || 
+                       alu_lshift);
 
     // Determine if the current stage is done
     stage_done = (fetch && substage >= (load_full_inst ? 1 : 0)) || decode || execute;
